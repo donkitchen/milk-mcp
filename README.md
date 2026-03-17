@@ -56,6 +56,29 @@ Restart Claude Code to load the MCP server.
 
 > **Note**: The auth step requires cloning the repo, but once authenticated, Claude Code runs milk-mcp via npx from npm.
 
+### 4. (Optional) Enable automatic sessions
+
+You can instruct Claude to automatically load context at session start and save it when you wrap up. Add the following to your `~/.claude/CLAUDE.md` for all projects:
+
+```markdown
+## RTM Session Management
+
+Use the milk-mcp tools for persistent memory across sessions:
+
+- **Session start**: Call `rtm_session_start` with the project name derived from the
+  current working directory name (e.g., if in `/Users/me/code/my-project`, use
+  project="my-project")
+- **Session end**: When the user says "wrap up", "done for now", "let's stop",
+  "save context", or similar, call `rtm_session_end` with the directory-based
+  project name and a summary of what was accomplished, what's in progress, and
+  suggested next steps
+
+If `rtm_session_start` fails because the project doesn't exist, offer to run
+`rtm_setup_project` to create it.
+```
+
+Or add to a specific project's `.claude/CLAUDE.md` with a hardcoded project name.
+
 ## Project Structure in RTM
 
 For each project, milk-mcp creates 5 lists in RTM (prefixed with `CC:` for Claude Code):
