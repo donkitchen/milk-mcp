@@ -1,0 +1,42 @@
+{
+  "tagline": "Teaching Claude to remember.",
+  "toolCount": 16,
+  "toolCategories": [
+    {
+      "name": "Session Management",
+      "description": "Start sessions, load context, write handoff notes",
+      "tools": ["rtm_session_start", "rtm_session_end", "rtm_get_context"]
+    },
+    {
+      "name": "Task Tracking",
+      "description": "Add, update, complete, and promote TODOs and backlog items",
+      "tools": ["rtm_add_task", "rtm_add_backlog", "rtm_update_task", "rtm_complete_task", "rtm_promote_to_todo", "rtm_get_todos", "rtm_get_backlog"]
+    },
+    {
+      "name": "Bug Logging",
+      "description": "Track bugs with reproduction steps",
+      "tools": ["rtm_add_bug", "rtm_get_bugs"]
+    },
+    {
+      "name": "Decision Logging",
+      "description": "Record architectural decisions with rationale",
+      "tools": ["rtm_log_decision", "rtm_get_decisions"]
+    },
+    {
+      "name": "Project Setup",
+      "description": "Create and list milk-mcp projects",
+      "tools": ["rtm_setup_project", "rtm_list_projects"]
+    }
+  ],
+  "features": [
+    "Session handoffs with context preservation",
+    "Task tracking across coding sessions",
+    "Decision logging with rationale",
+    "Project-scoped organization"
+  ],
+  "setupSteps": [
+    "npx milk-mcp auth",
+    "claude mcp add milk-mcp -- npx milk-mcp",
+    "Restart Claude Code"
+  ]
+}
