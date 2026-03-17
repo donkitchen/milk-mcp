@@ -267,4 +267,22 @@ export class ProjectManager {
     }
     return task;
   }
+
+  /**
+   * Move a task from Backlog to TODO (promote it to active work).
+   */
+  async promoteToTodo(
+    project: string,
+    taskseriesId: string,
+    taskId: string
+  ): Promise<void> {
+    const lists = await this.getProjectLists(project);
+    if (!lists.Backlog) {
+      throw new Error(`No Backlog list found for "${project}". Run rtm_setup_project first.`);
+    }
+    if (!lists.TODO) {
+      throw new Error(`No TODO list found for "${project}". Run rtm_setup_project first.`);
+    }
+    await this.client.moveTask(lists.Backlog.id, lists.TODO.id, taskseriesId, taskId);
+  }
 }

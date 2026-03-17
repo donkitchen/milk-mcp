@@ -487,6 +487,59 @@ server.registerTool(
   }
 );
 
+/**
+ * Get backlog items for a project.
+ */
+server.registerTool(
+  "rtm_get_backlog",
+  {
+    title: "Get Project Backlog",
+    description: "List all backlog items for a project.",
+    inputSchema: {
+      project: z.string().describe("Project name"),
+    },
+  },
+  async ({ project }) => {
+    const backlog = await pm.getBacklog(project);
+    if (backlog.length === 0) {
+      return {
+        content: [{ type: "text", text: `No items in ${project}/Backlog.` }],
+      };
+    }
+    return {
+      content: [
+        {
+          type: "text",
+          text: `## ${project} — Backlog (${backlog.length})\n\n${backlog.map(formatTask).join("\n\n")}`,
+        },
+      ],
+    };
+  }
+);
+
+/**
+ * Promote a backlog item to TODO.
+ */
+server.registerTool(
+  "rtm_promote_to_todo",
+  {
+    title: "Promote Backlog to TODO",
+    description:
+      "Move a task from the Backlog list to the TODO list. Get the IDs from rtm_get_backlog.",
+    inputSchema: {
+      project: z.string().describe("Project name"),
+      taskseriesId: z.string().describe("RTM taskseries ID from backlog item"),
+      taskId: z.string().describe("RTM task ID from backlog item"),
+    },
+  },
+  async ({ project, taskseriesId, taskId }) => {
+    await pm.promoteToTodo(project, taskseriesId, taskId);
+    return {
+      content: [{ type: "text", text: `✅ Moved to ${project}/TODO.` }],
+    };
+  }
+);
+
 // ─── Connect ─────────────────────────────────────────────────────────────────
 
 const transport = new StdioServerTransport();
