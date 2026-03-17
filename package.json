@@ -5,7 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "milk-mcp": "./dist/index.js"
+    "milk-mcp": "dist/index.js"
   },
   "files": [
     "dist",
@@ -39,5 +39,9 @@
     "task-management",
     "productivity"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/donkitchen/milk-mcp.git"
+  }
 }
