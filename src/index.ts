@@ -396,6 +396,60 @@ server.registerTool(
 );
 
 /**
+ * Update task properties (priority, tags).
+ */
+server.registerTool(
+  "rtm_update_task",
+  {
+    title: "Update Task",
+    description:
+      "Update a task's priority or tags. Get the IDs from rtm_get_todos or rtm_get_backlog.",
+    inputSchema: {
+      listId: z.string().describe("RTM list ID"),
+      taskseriesId: z.string().describe("RTM taskseries ID"),
+      taskId: z.string().describe("RTM task ID"),
+      priority: z
+        .enum(["1", "2", "3", "N"])
+        .optional()
+        .describe("Priority: 1=High, 2=Medium, 3=Low, N=None"),
+      tags: z
+        .array(z.string())
+        .optional()
+        .describe("Tags to add to the task"),
+    },
+  },
+  async ({ listId, taskseriesId, taskId, priority, tags }) => {
+    const updates: string[] = [];
+
+    if (priority) {
+      await client.setPriority(listId, taskseriesId, taskId, priority);
+      const priorityLabel: Record<string, string> = {
+        "1": "High",
+        "2": "Medium",
+        "3": "Low",
+        "N": "None",
+      };
+      updates.push(`priority → ${priorityLabel[priority]}`);
+    }
+
+    if (tags && tags.length > 0) {
+      await client.addTags(listId, taskseriesId, taskId, tags);
+      updates.push(`tags → ${tags.join(", ")}`);
+    }
+
+    if (updates.length === 0) {
+      return {
+        content: [{ type: "text", text: "No updates provided." }],
+      };
+    }
+
+    return {
+      content: [{ type: "text", text: `✅ Task updated: ${updates.join("; ")}` }],
+    };
+  }
+);
+
+/**
  * Get open TODOs for a project.
  */
 server.registerTool(
