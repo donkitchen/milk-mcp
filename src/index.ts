@@ -4,6 +4,10 @@
  *
  * Exposes project-scoped task management tools designed for developer
  * workflows: session context, todos, backlog, bugs, and decisions.
+ *
+ * Usage:
+ *   npx milk-mcp          # Run MCP server (for Claude Code)
+ *   npx milk-mcp auth     # Authenticate with RTM
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -11,6 +15,36 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { loadConfig, RtmClient } from "./rtm-client.js";
 import { ProjectManager } from "./project-manager.js";
+import { runAuth } from "./auth.js";
+
+// ─── CLI Handling ────────────────────────────────────────────────────────────
+
+const command = process.argv[2];
+
+if (command === "auth") {
+  // Run auth flow and exit
+  await runAuth(process.argv.slice(3));
+  process.exit(0);
+}
+
+if (command === "help" || command === "--help" || command === "-h") {
+  console.log(`
+milk-mcp — Remember The Milk MCP server for Claude Code
+
+Usage:
+  npx milk-mcp          Run MCP server (used by Claude Code)
+  npx milk-mcp auth     Authenticate with RTM (run this first)
+
+Authentication:
+  npx milk-mcp auth [api_key] [shared_secret]
+
+  Or set environment variables:
+    RTM_API_KEY=xxx RTM_SHARED_SECRET=yyy npx milk-mcp auth
+
+Get API credentials at: https://www.rememberthemilk.com/services/api/keys.rtm
+`);
+  process.exit(0);
+}
 
 // ─── Initialise ──────────────────────────────────────────────────────────────
 
@@ -23,6 +57,7 @@ try {
   pm = new ProjectManager(client);
 } catch (err) {
   process.stderr.write(`[milk-mcp] Failed to load config: ${err}\n`);
+  process.stderr.write(`[milk-mcp] Run 'npx milk-mcp auth' to authenticate first.\n`);
   process.exit(1);
 }
 

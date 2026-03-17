@@ -19,34 +19,24 @@ Claude Code sessions are ephemeral — when you close a session, the context is 
 
 ## Setup
 
-### 1. Clone the repo (needed for auth)
+### 1. Authenticate with RTM
 
 ```bash
-git clone https://github.com/donkitchen/milk-mcp.git
-cd milk-mcp
-npm install
-```
-
-### 2. Authenticate with RTM
-
-Run the auth script to connect to your Remember The Milk account:
-
-```bash
-npm run auth
+npx milk-mcp auth
 ```
 
 This will:
 1. Prompt for your API key and shared secret
-2. Open a browser URL for you to authorize the app
+2. Give you a URL to authorize the app in your browser
 3. Save credentials to `~/.config/milk-mcp/config`
 
-You can also pass credentials as environment variables:
+You can also pass credentials directly:
 
 ```bash
-RTM_API_KEY=xxx RTM_SHARED_SECRET=yyy npm run auth
+npx milk-mcp auth <api_key> <shared_secret>
 ```
 
-### 3. Add to Claude Code
+### 2. Add to Claude Code
 
 ```bash
 claude mcp add milk-mcp -- npx milk-mcp
@@ -54,9 +44,7 @@ claude mcp add milk-mcp -- npx milk-mcp
 
 Restart Claude Code to load the MCP server.
 
-> **Note**: The auth step requires cloning the repo, but once authenticated, Claude Code runs milk-mcp via npx from npm.
-
-### 4. (Optional) Enable automatic sessions
+### 3. (Optional) Enable automatic sessions
 
 You can instruct Claude to automatically load context at session start and save it when you wrap up. Add the following to your `~/.claude/CLAUDE.md` for all projects:
 

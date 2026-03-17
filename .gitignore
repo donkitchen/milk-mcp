@@ -6,3 +6,4 @@ dist/
 .config/
 *.env
 .env*
+settings.local.json
