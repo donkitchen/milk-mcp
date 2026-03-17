@@ -17,23 +17,19 @@ Claude Code sessions are ephemeral — when you close a session, the context is 
 2. RTM API credentials — get them at https://www.rememberthemilk.com/services/api/keys.rtm
 3. Node.js 18+
 
-## Installation
+## Setup
+
+### 1. Clone the repo (needed for auth)
 
 ```bash
-# Clone the repo
-git clone https://github.com/yourusername/milk-mcp.git
+git clone https://github.com/donkitchen/milk-mcp.git
 cd milk-mcp
-
-# Install dependencies
 npm install
-
-# Build
-npm run build
 ```
 
-## Authentication Setup
+### 2. Authenticate with RTM
 
-Run the auth script to connect milk-mcp to your RTM account:
+Run the auth script to connect to your Remember The Milk account:
 
 ```bash
 npm run auth
@@ -50,19 +46,15 @@ You can also pass credentials as environment variables:
 RTM_API_KEY=xxx RTM_SHARED_SECRET=yyy npm run auth
 ```
 
-## Add to Claude Code
-
-Once authenticated, add milk-mcp as an MCP server:
+### 3. Add to Claude Code
 
 ```bash
-# If installed globally or via npx
 claude mcp add milk-mcp -- npx milk-mcp
-
-# Or for a local clone
-claude mcp add milk-mcp -- node /path/to/milk-mcp/dist/index.js
 ```
 
-Restart Claude Code to load the new MCP server.
+Restart Claude Code to load the MCP server.
+
+> **Note**: The auth step requires cloning the repo, but once authenticated, Claude Code runs milk-mcp via npx from npm.
 
 ## Project Structure in RTM
 
