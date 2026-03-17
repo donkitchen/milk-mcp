@@ -1,0 +1,42 @@
+{
+  "name": "milk-mcp",
+  "version": "0.1.0",
+  "description": "Remember The Milk MCP server for Claude Code — project-scoped task management and session memory",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "milk-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc && chmod 755 dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "auth": "tsx scripts/rtm-auth.ts",
+    "clean": "rm -rf dist"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.6.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "keywords": [
+    "mcp",
+    "remember-the-milk",
+    "rtm",
+    "claude-code",
+    "task-management",
+    "productivity"
+  ],
+  "license": "MIT"
+}
