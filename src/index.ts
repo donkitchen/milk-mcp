@@ -13,9 +13,21 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 import { loadConfig, RtmClient } from "./rtm-client.js";
 import { ProjectManager } from "./project-manager.js";
 import { runAuth } from "./auth.js";
+
+// ─── Version ─────────────────────────────────────────────────────────────────
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageJson = JSON.parse(
+  readFileSync(join(__dirname, "..", "package.json"), "utf-8")
+);
+const VERSION = packageJson.version;
 
 // ─── CLI Handling ────────────────────────────────────────────────────────────
 
@@ -27,19 +39,29 @@ if (command === "auth") {
   process.exit(0);
 }
 
+if (command === "version" || command === "--version" || command === "-v") {
+  console.log(`milk-mcp v${VERSION}`);
+  process.exit(0);
+}
+
 if (command === "help" || command === "--help" || command === "-h") {
   console.log(`
-milk-mcp — Remember The Milk MCP server for Claude Code
+milk-mcp v${VERSION} — Remember The Milk MCP server for Claude Code
 
 Usage:
-  npx milk-mcp          Run MCP server (used by Claude Code)
-  npx milk-mcp auth     Authenticate with RTM (run this first)
+  npx milk-mcp            Run MCP server (used by Claude Code)
+  npx milk-mcp auth       Authenticate with RTM (run this first)
+  npx milk-mcp --version  Show version
 
 Authentication:
   npx milk-mcp auth [api_key] [shared_secret]
 
   Or set environment variables:
     RTM_API_KEY=xxx RTM_SHARED_SECRET=yyy npx milk-mcp auth
+
+Upgrade:
+  npx milk-mcp@latest --version   Check latest version
+  npx clear-npx-cache             Clear cache to get updates
 
 Get API credentials at: https://www.rememberthemilk.com/services/api/keys.rtm
 `);

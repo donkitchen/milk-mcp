@@ -105,12 +105,15 @@ For each project, milk-mcp creates 5 lists in RTM (prefixed with `CC:` for Claud
 | `rtm_add_bug` | Log a bug with reproduction steps |
 | `rtm_log_decision` | Record an architectural decision |
 | `rtm_complete_task` | Mark a task complete |
+| `rtm_update_task` | Update priority, due date, name, tags, or add a note |
+| `rtm_promote_to_todo` | Move a backlog item to TODO |
 
 ### Queries
 
 | Tool | Description |
 |------|-------------|
 | `rtm_get_todos` | List open TODO tasks |
+| `rtm_get_backlog` | List backlog items |
 | `rtm_get_bugs` | List open bugs |
 | `rtm_get_decisions` | List all logged decisions |
 
@@ -136,6 +139,31 @@ Claude: [calls rtm_session_start with project="ReadyPath"]
 You: Let's wrap up
 Claude: [calls rtm_session_end with summary of what was done]
         ✅ Context saved for next time
+```
+
+## Upgrading
+
+Check your current version:
+
+```bash
+npx milk-mcp --version
+```
+
+To get the latest version:
+
+```bash
+# Clear the npx cache
+npx clear-npx-cache
+
+# Or use @latest explicitly
+npx milk-mcp@latest --version
+```
+
+For automatic updates, configure Claude Code with `@latest`:
+
+```bash
+claude mcp remove milk-mcp
+claude mcp add milk-mcp -- npx milk-mcp@latest
 ```
 
 ## Development
