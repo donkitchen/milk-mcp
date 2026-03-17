@@ -292,8 +292,10 @@ export class RtmClient {
     });
 
     const list = rsp["list"] as Record<string, unknown>;
-    const series = list["taskseries"] as Record<string, unknown>;
-    const task = series["task"] as Record<string, string>;
+    const seriesData = list["taskseries"];
+    const series = (Array.isArray(seriesData) ? seriesData[0] : seriesData) as Record<string, unknown>;
+    const taskData = series["task"];
+    const task = (Array.isArray(taskData) ? taskData[0] : taskData) as Record<string, string>;
 
     return {
       id: task["id"],
