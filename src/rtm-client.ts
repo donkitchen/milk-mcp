@@ -434,6 +434,46 @@ export class RtmClient {
     });
   }
 
+  /**
+   * Set due date on a task. Use empty string to clear.
+   * Format: ISO date (YYYY-MM-DD) or natural language ("tomorrow", "next week")
+   */
+  async setDueDate(
+    listId: string,
+    taskseriesId: string,
+    taskId: string,
+    due: string
+  ): Promise<void> {
+    const timeline = await this.getTimeline();
+    await this.call("rtm.tasks.setDueDate", {
+      timeline,
+      list_id: listId,
+      taskseries_id: taskseriesId,
+      task_id: taskId,
+      due,
+      parse: "1", // Allow natural language parsing
+    });
+  }
+
+  /**
+   * Rename a task.
+   */
+  async setName(
+    listId: string,
+    taskseriesId: string,
+    taskId: string,
+    name: string
+  ): Promise<void> {
+    const timeline = await this.getTimeline();
+    await this.call("rtm.tasks.setName", {
+      timeline,
+      list_id: listId,
+      taskseries_id: taskseriesId,
+      task_id: taskId,
+      name,
+    });
+  }
+
   // ─── Auth helpers (used by the auth setup script only) ───────────────────
 
   static getAuthUrl(apiKey: string, sharedSecret: string, frob: string): string {

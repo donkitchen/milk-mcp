@@ -396,14 +396,14 @@ server.registerTool(
 );
 
 /**
- * Update task properties (priority, tags).
+ * Update task properties (priority, tags, due date, name, note).
  */
 server.registerTool(
   "rtm_update_task",
   {
     title: "Update Task",
     description:
-      "Update a task's priority or tags. Get the IDs from rtm_get_todos or rtm_get_backlog.",
+      "Update a task's properties. Get the IDs from rtm_get_todos or rtm_get_backlog.",
     inputSchema: {
       listId: z.string().describe("RTM list ID"),
       taskseriesId: z.string().describe("RTM taskseries ID"),
@@ -416,10 +416,27 @@ server.registerTool(
         .array(z.string())
         .optional()
         .describe("Tags to add to the task"),
+      due: z
+        .string()
+        .optional()
+        .describe("Due date: ISO format (YYYY-MM-DD) or natural language ('tomorrow', 'next week'). Empty string to clear."),
+      name: z
+        .string()
+        .optional()
+        .describe("New task name (rename)"),
+      note: z
+        .string()
+        .optional()
+        .describe("Add a note to the task"),
     },
   },
-  async ({ listId, taskseriesId, taskId, priority, tags }) => {
+  async ({ listId, taskseriesId, taskId, priority, tags, due, name, note }) => {
     const updates: string[] = [];
+
+    if (name) {
+      await client.setName(listId, taskseriesId, taskId, name);
+      updates.push(`name → "${name}"`);
+    }
 
     if (priority) {
       await client.setPriority(listId, taskseriesId, taskId, priority);
@@ -432,9 +449,19 @@ server.registerTool(
       updates.push(`priority → ${priorityLabel[priority]}`);
     }
 
+    if (due !== undefined) {
+      await client.setDueDate(listId, taskseriesId, taskId, due);
+      updates.push(due ? `due → ${due}` : "due → cleared");
+    }
+
     if (tags && tags.length > 0) {
       await client.addTags(listId, taskseriesId, taskId, tags);
       updates.push(`tags → ${tags.join(", ")}`);
+    }
+
+    if (note) {
+      await client.addNote(listId, taskseriesId, taskId, "", note);
+      updates.push("note added");
     }
 
     if (updates.length === 0) {
