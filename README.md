@@ -166,6 +166,17 @@ claude mcp remove milk-mcp
 claude mcp add milk-mcp -- npx milk-mcp@latest
 ```
 
+## The milk.tools Universe
+
+milk-mcp is part of [milk.tools](https://milk.tools) — a collection of productivity tools built on RTM.
+
+| Product | Description |
+|---------|-------------|
+| **[milk-mcp](https://github.com/donkitchen/milk-mcp)** | This. You're reading it. |
+| **[milk-pm](https://github.com/donkitchen/milk-pm)** | Terminal-native project management. |
+
+Same credentials. Zero extra setup.
+
 ## Development
 
 ```bash
