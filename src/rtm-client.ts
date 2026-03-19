@@ -276,12 +276,17 @@ export class RtmClient {
   }
 
   /**
-   * Add a task to a list. Supports RTM Smart Add syntax.
+   * Add a task to a list.
+   * When parse=true (default), RTM Smart Add syntax is enabled:
+   *   - Priority: !1, !2, !3
+   *   - Estimate: =2h, =30min
+   *   - Tags: #tagname
+   *   - Due date: natural language at end ("tomorrow", "Friday", "next week")
    */
   async addTask(
     listId: string,
     name: string,
-    parse = false
+    parse = true
   ): Promise<RtmTask> {
     const timeline = await this.getTimeline();
     const rsp = await this.call("rtm.tasks.add", {
@@ -297,6 +302,15 @@ export class RtmClient {
     const taskData = series["task"];
     const task = (Array.isArray(taskData) ? taskData[0] : taskData) as Record<string, string>;
 
+    // Parse tags from response (Smart Add may have added them)
+    const tagsData = series["tags"] as { tag?: string | string[] } | "";
+    const tags =
+      tagsData && typeof tagsData === "object" && tagsData.tag
+        ? Array.isArray(tagsData.tag)
+          ? tagsData.tag
+          : [tagsData.tag]
+        : [];
+
     return {
       id: task["id"],
       taskseriesId: series["id"] as string,
@@ -306,10 +320,10 @@ export class RtmClient {
       due: task["due"] ?? "",
       completed: "",
       deleted: "",
-      tags: [],
+      tags,
       notes: [],
-      url: "",
-      estimate: "",
+      url: (series["url"] as string) ?? "",
+      estimate: task["estimate"] ?? "",
     };
   }
 

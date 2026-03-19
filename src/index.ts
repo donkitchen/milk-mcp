@@ -99,6 +99,7 @@ function formatTask(task: {
   due: string;
   tags: string[];
   notes: { title: string; body: string }[];
+  estimate?: string;
 }): string {
   const priorityLabel: Record<string, string> = {
     "1": "🔴 High",
@@ -111,6 +112,7 @@ function formatTask(task: {
     `  ID: ${task.taskseriesId}/${task.id} (list: ${task.listId})`,
     `  Priority: ${priorityLabel[task.priority] ?? task.priority}`,
     task.due ? `  Due: ${task.due}` : null,
+    task.estimate ? `  Estimate: ${task.estimate}` : null,
     task.tags.length ? `  Tags: ${task.tags.join(", ")}` : null,
     task.notes.length
       ? `  Notes: ${task.notes.map((n) => n.title || "(untitled)").join(", ")}`
@@ -275,14 +277,15 @@ server.registerTool(
   "rtm_add_task",
   {
     title: "Add Task to Project",
-    description: "Add a task to a project's TODO list.",
+    description:
+      "Add a task to a project's TODO list. Supports RTM Smart Add syntax in the name: !1/!2/!3 for priority, =2h for estimate, #tag for tags, and natural language dates ('tomorrow', 'Friday'). Example: 'Fix login bug !1 #auth =2h tomorrow'",
     inputSchema: {
       project: z.string().describe("Project name"),
-      name: z.string().describe("Task name"),
+      name: z.string().describe("Task name (supports Smart Add: !priority, =estimate, #tags, due date)"),
       priority: z
         .enum(["1", "2", "3"])
         .optional()
-        .describe("Priority: 1=High, 2=Medium, 3=Low"),
+        .describe("Priority: 1=High, 2=Medium, 3=Low (or use !1/!2/!3 in name)"),
     },
   },
   async ({ project, name, priority }) => {
@@ -305,10 +308,11 @@ server.registerTool(
   "rtm_add_backlog",
   {
     title: "Add Backlog Item",
-    description: "Add a deferred or future task to a project's Backlog list.",
+    description:
+      "Add a deferred or future task to a project's Backlog list. Supports Smart Add syntax: !priority, =estimate, #tags.",
     inputSchema: {
       project: z.string().describe("Project name"),
-      name: z.string().describe("Backlog item description"),
+      name: z.string().describe("Backlog item description (supports Smart Add syntax)"),
     },
   },
   async ({ project, name }) => {
@@ -363,10 +367,11 @@ server.registerTool(
   "rtm_add_bug",
   {
     title: "Add Bug",
-    description: "Add a bug to the project's Bugs list with repro steps in a note.",
+    description:
+      "Add a bug to the project's Bugs list with repro steps in a note. Supports Smart Add syntax in title: !priority, #tags.",
     inputSchema: {
       project: z.string().describe("Project name"),
-      title: z.string().describe("Bug title"),
+      title: z.string().describe("Bug title (supports Smart Add syntax)"),
       reproSteps: z
         .string()
         .describe("Reproduction steps, expected vs actual behavior, error messages"),
@@ -598,12 +603,12 @@ server.registerTool(
   {
     title: "Add Learning",
     description:
-      "Record a hard-won lesson in the project's Learnings list. Learnings persist as permanent reference — they are never completed. Use this for API quirks, gotchas, patterns that work, or anything Claude should remember.",
+      "Record a hard-won lesson in the project's Learnings list. Learnings persist as permanent reference — they are never completed. Use this for API quirks, gotchas, patterns that work, or anything Claude should remember. Supports Smart Add syntax: #tags.",
     inputSchema: {
       project: z.string().describe("Project name"),
       learning: z
         .string()
-        .describe("The lesson learned, e.g. 'RTM Smart Add date parsing is locale-sensitive — always use ISO format'"),
+        .describe("The lesson learned (supports #tags). E.g. 'RTM Smart Add uses =2h for estimates not ~2h #api'"),
       context: z
         .string()
         .optional()

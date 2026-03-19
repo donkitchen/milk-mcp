@@ -126,6 +126,23 @@ For each project, milk-mcp creates 6 lists in RTM (prefixed with `CC:` for Claud
 | `rtm_add_learning` | Record a hard-won lesson (API quirks, gotchas, patterns) |
 | `rtm_get_learnings` | List all learnings for a project |
 
+## Smart Add Syntax
+
+All task creation tools support RTM's Smart Add syntax in the task name:
+
+| Syntax | Example | Effect |
+|--------|---------|--------|
+| `!1`, `!2`, `!3` | `Fix bug !1` | Set priority (1=high, 2=medium, 3=low) |
+| `=time` | `Write docs =2h` | Set time estimate |
+| `#tag` | `Refactor auth #backend` | Add tag |
+| Natural language | `Call Alice tomorrow` | Set due date |
+
+**Full example:**
+```
+Fix login timeout !1 =2h #auth #urgent Friday
+```
+Creates a high-priority task with 2-hour estimate, two tags, due Friday.
+
 ## Usage Example
 
 **First time setup:**
