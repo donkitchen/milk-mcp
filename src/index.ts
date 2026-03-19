@@ -16,9 +16,10 @@ import { z } from "zod";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import { loadConfig, RtmClient } from "./rtm-client.js";
+import { loadConfig, RtmClient, MilkMcpSettings } from "./rtm-client.js";
 import { ProjectManager } from "./project-manager.js";
 import { runAuth } from "./auth.js";
+import { validateTags, formatValidationResults } from "./schema.js";
 
 // ─── Version ─────────────────────────────────────────────────────────────────
 
@@ -72,11 +73,13 @@ Get API credentials at: https://www.rememberthemilk.com/services/api/keys.rtm
 
 let client: RtmClient;
 let pm: ProjectManager;
+let settings: MilkMcpSettings;
 
 try {
   const config = loadConfig();
   client = new RtmClient(config);
   pm = new ProjectManager(client);
+  settings = config.settings;
 } catch (err) {
   process.stderr.write(`[milk-mcp] Failed to load config: ${err}\n`);
   process.stderr.write(`[milk-mcp] Run 'npx milk-mcp auth' to authenticate first.\n`);
@@ -482,8 +485,27 @@ server.registerTool(
     }
 
     if (tags && tags.length > 0) {
+      // Validate tags against milk-schema if enforcement is enabled
+      const validation = validateTags(tags);
+      const validationMsg = formatValidationResults(validation, settings.schemaEnforcement ?? "off");
+
+      if (settings.schemaEnforcement === "enforce" && validation.invalid.length > 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `❌ Tag validation failed (schema enforcement is enabled):\n${validationMsg}`,
+            },
+          ],
+        };
+      }
+
       await client.addTags(listId, taskseriesId, taskId, tags);
       updates.push(`tags → ${tags.join(", ")}`);
+
+      if (validationMsg) {
+        updates.push(`\n⚠️ Schema warnings:\n${validationMsg}`);
+      }
     }
 
     if (note) {
@@ -691,6 +713,66 @@ server.registerTool(
 );
 
 /**
+ * Declare a blocker.
+ */
+server.registerTool(
+  "rtm_add_blocker",
+  {
+    title: "Declare Blocker",
+    description:
+      "Formally declare a blocker — creates a high-priority task in the Bugs list with s:blocked tag. If @someone is mentioned, they're tagged as assignee. Optionally fires a webhook notification if ZAPIER_WEBHOOK is configured.",
+    inputSchema: {
+      project: z.string().describe("Project name"),
+      description: z
+        .string()
+        .describe("What's blocked and why. Include @person if someone specific needs to unblock it."),
+      context: z
+        .string()
+        .optional()
+        .describe("Additional context: what you tried, links to related tasks, etc."),
+    },
+  },
+  async ({ project, description, context }) => {
+    const { task, assignee } = await pm.addBlocker(project, description, context);
+
+    // Fire webhook if configured
+    let webhookStatus = "";
+    if (settings.zapierWebhook) {
+      try {
+        const payload = {
+          event: "blocker_declared",
+          project,
+          description,
+          assignee: assignee ?? null,
+          taskId: `${task.taskseriesId}/${task.id}`,
+          timestamp: new Date().toISOString(),
+        };
+        const resp = await fetch(settings.zapierWebhook, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        webhookStatus = resp.ok
+          ? "\n📤 Webhook notification sent."
+          : `\n⚠️ Webhook failed: ${resp.status}`;
+      } catch (err) {
+        webhookStatus = `\n⚠️ Webhook error: ${err}`;
+      }
+    }
+
+    const assigneeNote = assignee ? ` (assigned to @${assignee})` : "";
+    return {
+      content: [
+        {
+          type: "text",
+          text: `🚨 Blocker declared in ${project}/Bugs${assigneeNote}:\n${formatTask(task)}${webhookStatus}`,
+        },
+      ],
+    };
+  }
+);
+
+/**
  * Promote a backlog item to TODO.
  */
 server.registerTool(
@@ -709,6 +791,47 @@ server.registerTool(
     await pm.promoteToTodo(project, taskseriesId, taskId);
     return {
       content: [{ type: "text", text: `✅ Moved to ${project}/TODO.` }],
+    };
+  }
+);
+
+/**
+ * Ship a feature — batch complete matching tasks and log changelog.
+ */
+server.registerTool(
+  "rtm_ship",
+  {
+    title: "Ship Feature",
+    description:
+      "End-of-feature ceremony: finds all tasks matching a query (fuzzy match), marks them complete, and logs a changelog entry to the Context list. Use after completing a feature or sprint.",
+    inputSchema: {
+      project: z.string().describe("Project name"),
+      query: z
+        .string()
+        .describe("Feature name or keyword to match. All tasks containing this text will be completed."),
+    },
+  },
+  async ({ project, query }) => {
+    const { completed, changelog } = await pm.ship(project, query);
+
+    if (completed.length === 0) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `No tasks found matching "${query}" in ${project}.`,
+          },
+        ],
+      };
+    }
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: `🚀 Shipped "${query}"!\n\n${changelog}\n\nChangelog saved to ${project}/Context.`,
+        },
+      ],
     };
   }
 );

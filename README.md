@@ -104,8 +104,10 @@ For each project, milk-mcp creates 6 lists in RTM (prefixed with `CC:` for Claud
 | `rtm_add_task` | Add a task to the TODO list |
 | `rtm_add_backlog` | Add an item to the Backlog |
 | `rtm_add_bug` | Log a bug with reproduction steps |
+| `rtm_add_blocker` | Declare a blocker (auto-tags s:blocked, P1, @assignee) |
 | `rtm_log_decision` | Record an architectural decision |
 | `rtm_complete_task` | Mark a task complete |
+| `rtm_ship` | Ship a feature (batch complete matching tasks + changelog) |
 | `rtm_update_task` | Update priority, due date, name, tags, or add a note |
 | `rtm_promote_to_todo` | Move a backlog item to TODO |
 
@@ -143,6 +145,22 @@ Fix login timeout !1 =2h #auth #urgent Friday
 ```
 Creates a high-priority task with 2-hour estimate, two tags, due Friday.
 
+## milk-schema Tags
+
+milk-mcp supports the [milk-schema](https://milk.tools/milk-schema) tag convention. Enable validation via `SCHEMA_ENFORCEMENT=warn` or `enforce` in config.
+
+| Prefix | Values | Example |
+|--------|--------|---------|
+| `s:` | inbox, todo, active, blocked, review, done, cancelled, someday | `s:blocked` |
+| `p:` | 1, 2, 3, 4 | `p:1` |
+| `type:` | feature, bug, chore, spike, debt, docs, design, decision | `type:feature` |
+| `size:` | xs, s, m, l, xl | `size:m` |
+| `impact:` | high, medium, low | `impact:high` |
+| `energy:` | deep, shallow, social | `energy:deep` |
+| `area:` | (custom) | `area:auth` |
+| `sprint:` | YYYY-Www | `sprint:2026-w12` |
+| `@` | (assignee) | `@alice` |
+
 ## Usage Example
 
 **First time setup:**
@@ -166,6 +184,24 @@ You: Let's wrap up
 Claude: [calls rtm_session_end with summary of what was done]
         ✅ Context saved for next time
 ```
+
+## Configuration
+
+Optional settings can be added to `~/.config/milk-mcp/config`:
+
+```bash
+# RTM credentials (required)
+RTM_API_KEY=xxx
+RTM_SHARED_SECRET=xxx
+RTM_AUTH_TOKEN=xxx
+
+# Optional settings
+ZAPIER_WEBHOOK=https://hooks.zapier.com/...  # Webhook for blocker notifications
+DEFAULT_SPRINT=sprint:2026-w12               # Auto-applied to new tasks (coming soon)
+SCHEMA_ENFORCEMENT=warn                       # warn, enforce, or off (default: off)
+```
+
+Settings can also be set via environment variables.
 
 ## Upgrading
 

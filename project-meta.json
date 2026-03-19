@@ -1,6 +1,6 @@
 {
   "tagline": "Teaching Claude to remember.",
-  "toolCount": 18,
+  "toolCount": 20,
   "toolCategories": [
     {
       "name": "Session Management",
@@ -10,12 +10,12 @@
     {
       "name": "Task Tracking",
       "description": "Add, update, complete, and promote TODOs and backlog items",
-      "tools": ["rtm_add_task", "rtm_add_backlog", "rtm_update_task", "rtm_complete_task", "rtm_promote_to_todo", "rtm_get_todos", "rtm_get_backlog"]
+      "tools": ["rtm_add_task", "rtm_add_backlog", "rtm_update_task", "rtm_complete_task", "rtm_ship", "rtm_promote_to_todo", "rtm_get_todos", "rtm_get_backlog"]
     },
     {
       "name": "Bug Logging",
-      "description": "Track bugs with reproduction steps",
-      "tools": ["rtm_add_bug", "rtm_get_bugs"]
+      "description": "Track bugs and blockers",
+      "tools": ["rtm_add_bug", "rtm_add_blocker", "rtm_get_bugs"]
     },
     {
       "name": "Decision Logging",

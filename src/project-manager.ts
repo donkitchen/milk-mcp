@@ -14,7 +14,7 @@
  *   Learnings — hard-won lessons that persist as reference (never completed)
  */
 
-import { RtmClient, RtmList, RtmTask, RtmNote } from "./rtm-client.js";
+import { RtmClient, RtmList, RtmTask } from "./rtm-client.js";
 
 export const LIST_TYPES = ["TODO", "Backlog", "Bugs", "Decisions", "Context", "Learnings"] as const;
 export type ListType = (typeof LIST_TYPES)[number];
@@ -321,5 +321,111 @@ export class ProjectManager {
       throw new Error(`No TODO list found for "${project}". Run rtm_setup_project first.`);
     }
     await this.client.moveTask(lists.Backlog.id, lists.TODO.id, taskseriesId, taskId);
+  }
+
+  /**
+   * Declare a blocker in the Bugs list.
+   * Auto-applies: s:blocked tag, priority 1, extracts @assignee if present.
+   */
+  async addBlocker(
+    project: string,
+    description: string,
+    context?: string
+  ): Promise<{ task: RtmTask; assignee?: string }> {
+    const lists = await this.getProjectLists(project);
+    if (!lists.Bugs) {
+      throw new Error(`No Bugs list found for "${project}". Run rtm_setup_project first.`);
+    }
+
+    // Extract @assignee from description if present
+    const assigneeMatch = description.match(/@(\w+)/);
+    const assignee = assigneeMatch ? assigneeMatch[1] : undefined;
+
+    // Create the task (Smart Add will parse any inline syntax)
+    const task = await this.client.addTask(lists.Bugs.id, description);
+
+    // Apply blocker tags and priority
+    const tags = ["s:blocked"];
+    if (assignee) tags.push(`@${assignee}`);
+    await this.client.addTags(task.listId, task.taskseriesId, task.id, tags);
+    await this.client.setPriority(task.listId, task.taskseriesId, task.id, "1");
+
+    // Add context note if provided
+    if (context) {
+      await this.client.addNote(
+        task.listId,
+        task.taskseriesId,
+        task.id,
+        "Blocker Context",
+        context
+      );
+    }
+
+    task.priority = "1";
+    task.tags = [...task.tags, ...tags];
+
+    return { task, assignee };
+  }
+
+  /**
+   * Ship a feature — fuzzy-match tasks by name, complete them, log to changelog.
+   * Returns the matched tasks that were completed.
+   */
+  async ship(
+    project: string,
+    query: string
+  ): Promise<{ completed: RtmTask[]; changelog: string }> {
+    // Get all open tasks across TODO, Backlog, Bugs
+    const lists = await this.getProjectLists(project);
+    const allTasks: RtmTask[] = [];
+
+    if (lists.TODO) {
+      allTasks.push(...(await this.client.getTasks(lists.TODO.id)));
+    }
+    if (lists.Backlog) {
+      allTasks.push(...(await this.client.getTasks(lists.Backlog.id)));
+    }
+    if (lists.Bugs) {
+      allTasks.push(...(await this.client.getTasks(lists.Bugs.id)));
+    }
+
+    // Fuzzy match: case-insensitive substring match
+    const queryLower = query.toLowerCase();
+    const matched = allTasks.filter((t) =>
+      t.name.toLowerCase().includes(queryLower)
+    );
+
+    // Complete all matched tasks
+    const completed: RtmTask[] = [];
+    for (const task of matched) {
+      await this.client.completeTask(task.listId, task.taskseriesId, task.id);
+      completed.push(task);
+    }
+
+    // Generate changelog entry
+    const date = new Date().toISOString().slice(0, 10);
+    const changelog = [
+      `## Shipped: ${query}`,
+      `Date: ${date}`,
+      `Tasks completed: ${completed.length}`,
+      "",
+      ...completed.map((t) => `- ${t.name}`),
+    ].join("\n");
+
+    // Write changelog to Context
+    if (lists.Context && completed.length > 0) {
+      const contextTask = await this.getContextTask(project);
+      if (contextTask) {
+        await this.client.addNote(
+          contextTask.listId,
+          contextTask.taskseriesId,
+          contextTask.id,
+          `🚀 Shipped: ${query} — ${date}`,
+          changelog
+        );
+      }
+    }
+
+    return { completed, changelog };
   }
 }

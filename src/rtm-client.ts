@@ -24,6 +24,19 @@ export interface RtmConfig {
   authToken: string;
 }
 
+export interface MilkMcpSettings {
+  /** Webhook URL for blocker notifications (optional) */
+  zapierWebhook?: string;
+  /** Default sprint tag to apply to new tasks, e.g. "sprint:2026-w12" (optional) */
+  defaultSprint?: string;
+  /** Tag schema enforcement mode: "warn", "enforce", or "off" (default: "off") */
+  schemaEnforcement?: "warn" | "enforce" | "off";
+}
+
+export interface FullConfig extends RtmConfig {
+  settings: MilkMcpSettings;
+}
+
 export interface RtmTask {
   id: string;
   taskseriesId: string;
@@ -56,50 +69,65 @@ export interface RtmList {
 }
 
 /**
- * Load RTM credentials from environment variables or config file.
+ * Load RTM credentials and milk-mcp settings from environment variables or config file.
  * Priority: env vars > ~/.config/milk-mcp/config
+ *
+ * Config file format (key=value):
+ *   RTM_API_KEY=xxx
+ *   RTM_SHARED_SECRET=xxx
+ *   RTM_AUTH_TOKEN=xxx
+ *   ZAPIER_WEBHOOK=https://hooks.zapier.com/...  (optional)
+ *   DEFAULT_SPRINT=sprint:2026-w12               (optional)
+ *   SCHEMA_ENFORCEMENT=warn|enforce|off          (optional, default: off)
  */
-export function loadConfig(): RtmConfig {
-  const apiKey = process.env.RTM_API_KEY;
-  const sharedSecret = process.env.RTM_SHARED_SECRET;
-  const authToken = process.env.RTM_AUTH_TOKEN;
+export function loadConfig(): FullConfig {
+  const configPath = join(homedir(), ".config", "milk-mcp", "config");
+  let parsed: Record<string, string> = {};
 
-  if (apiKey && sharedSecret && authToken) {
-    return { apiKey, sharedSecret, authToken };
+  // Try to load from file first (for settings)
+  if (existsSync(configPath)) {
+    const raw = readFileSync(configPath, "utf-8");
+    for (const line of raw.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const [key, ...rest] = trimmed.split("=");
+      parsed[key.trim()] = rest.join("=").trim();
+    }
   }
 
-  const configPath = join(homedir(), ".config", "milk-mcp", "config");
-  if (!existsSync(configPath)) {
+  // Auth: env vars override file
+  const apiKey = process.env.RTM_API_KEY ?? parsed["RTM_API_KEY"] ?? "";
+  const sharedSecret = process.env.RTM_SHARED_SECRET ?? parsed["RTM_SHARED_SECRET"] ?? "";
+  const authToken = process.env.RTM_AUTH_TOKEN ?? parsed["RTM_AUTH_TOKEN"] ?? "";
+
+  if (!apiKey || !sharedSecret || !authToken) {
     throw new Error(
       `No RTM credentials found. Set RTM_API_KEY, RTM_SHARED_SECRET, RTM_AUTH_TOKEN env vars, ` +
-        `or run: npm run auth\n` +
+        `or run: npx milk-mcp auth\n` +
         `Config file location: ${configPath}`
     );
   }
 
-  const raw = readFileSync(configPath, "utf-8");
-  const parsed: Record<string, string> = {};
-  for (const line of raw.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const [key, ...rest] = trimmed.split("=");
-    parsed[key.trim()] = rest.join("=").trim();
-  }
+  // Parse settings (env vars override file)
+  const schemaEnforcementRaw = process.env.SCHEMA_ENFORCEMENT ?? parsed["SCHEMA_ENFORCEMENT"];
+  const schemaEnforcement = (
+    schemaEnforcementRaw === "warn" || schemaEnforcementRaw === "enforce"
+      ? schemaEnforcementRaw
+      : "off"
+  ) as "warn" | "enforce" | "off";
 
-  const cfg: RtmConfig = {
-    apiKey: parsed["RTM_API_KEY"] ?? "",
-    sharedSecret: parsed["RTM_SHARED_SECRET"] ?? "",
-    authToken: parsed["RTM_AUTH_TOKEN"] ?? "",
+  const settings: MilkMcpSettings = {
+    zapierWebhook: process.env.ZAPIER_WEBHOOK ?? parsed["ZAPIER_WEBHOOK"],
+    defaultSprint: process.env.DEFAULT_SPRINT ?? parsed["DEFAULT_SPRINT"],
+    schemaEnforcement,
   };
 
-  if (!cfg.apiKey || !cfg.sharedSecret || !cfg.authToken) {
-    throw new Error(
-      `Config file at ${configPath} is missing required fields. ` +
-        `Run: npm run auth`
-    );
-  }
-
-  return cfg;
+  return {
+    apiKey,
+    sharedSecret,
+    authToken,
+    settings,
+  };
 }
 
 /**
