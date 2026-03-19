@@ -96,6 +96,7 @@ For each project, milk-mcp creates 6 lists in RTM (prefixed with `CC:` for Claud
 | `rtm_session_start` | Load context and open TODOs at session start |
 | `rtm_session_end` | Write handoff summary at session end |
 | `rtm_get_context` | Read just the latest context note |
+| `rtm_plan` | AI-powered planning: gather tasks for prioritization |
 
 ### Task Management
 

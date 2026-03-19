@@ -428,4 +428,129 @@ export class ProjectManager {
 
     return { completed, changelog };
   }
+
+  /**
+   * Gather planning context for AI-powered prioritization.
+   * Returns all relevant tasks organized by urgency/status.
+   */
+  async getPlanningContext(project: string): Promise<{
+    overdue: RtmTask[];
+    dueToday: RtmTask[];
+    dueThisWeek: RtmTask[];
+    priority1: RtmTask[];
+    active: RtmTask[];
+    blocked: RtmTask[];
+    backlog: RtmTask[];
+    summary: {
+      totalOpen: number;
+      overdueCount: number;
+      blockedCount: number;
+      p1Count: number;
+      estimatedHours: number;
+    };
+  }> {
+    const lists = await this.getProjectLists(project);
+    const allTasks: RtmTask[] = [];
+
+    // Gather all open tasks
+    if (lists.TODO) {
+      allTasks.push(...(await this.client.getTasks(lists.TODO.id)));
+    }
+    if (lists.Backlog) {
+      allTasks.push(...(await this.client.getTasks(lists.Backlog.id)));
+    }
+    if (lists.Bugs) {
+      allTasks.push(...(await this.client.getTasks(lists.Bugs.id)));
+    }
+
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+
+    // Categorize tasks
+    const overdue: RtmTask[] = [];
+    const dueToday: RtmTask[] = [];
+    const dueThisWeek: RtmTask[] = [];
+    const priority1: RtmTask[] = [];
+    const active: RtmTask[] = [];
+    const blocked: RtmTask[] = [];
+    const backlog: RtmTask[] = [];
+
+    for (const task of allTasks) {
+      const dueDate = task.due ? task.due.slice(0, 10) : null;
+      const tags = task.tags.map((t) => t.toLowerCase());
+
+      // Check status tags
+      if (tags.includes("s:blocked")) {
+        blocked.push(task);
+        continue;
+      }
+      if (tags.includes("s:active")) {
+        active.push(task);
+      }
+
+      // Check priority
+      if (task.priority === "1") {
+        priority1.push(task);
+      }
+
+      // Check due dates
+      if (dueDate) {
+        if (dueDate < today) {
+          overdue.push(task);
+        } else if (dueDate === today) {
+          dueToday.push(task);
+        } else if (dueDate <= weekFromNow) {
+          dueThisWeek.push(task);
+        }
+      }
+
+      // Backlog items (from Backlog list, not in other categories)
+      if (
+        lists.Backlog &&
+        task.listId === lists.Backlog.id &&
+        !overdue.includes(task) &&
+        !dueToday.includes(task) &&
+        !priority1.includes(task)
+      ) {
+        backlog.push(task);
+      }
+    }
+
+    // Parse estimates and sum (format: "2 hours", "30 minutes", etc.)
+    let estimatedHours = 0;
+    for (const task of [...overdue, ...dueToday, ...priority1, ...active]) {
+      if (task.estimate) {
+        const match = task.estimate.match(/(\d+)\s*(hour|hr|minute|min)/i);
+        if (match) {
+          const value = parseInt(match[1], 10);
+          const unit = match[2].toLowerCase();
+          if (unit.startsWith("hour") || unit.startsWith("hr")) {
+            estimatedHours += value;
+          } else {
+            estimatedHours += value / 60;
+          }
+        }
+      }
+    }
+
+    return {
+      overdue,
+      dueToday,
+      dueThisWeek,
+      priority1,
+      active,
+      blocked,
+      backlog,
+      summary: {
+        totalOpen: allTasks.length,
+        overdueCount: overdue.length,
+        blockedCount: blocked.length,
+        p1Count: priority1.length,
+        estimatedHours: Math.round(estimatedHours * 10) / 10,
+      },
+    };
+  }
 }

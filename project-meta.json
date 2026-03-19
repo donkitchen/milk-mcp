@@ -1,11 +1,11 @@
 {
   "tagline": "Teaching Claude to remember.",
-  "toolCount": 20,
+  "toolCount": 21,
   "toolCategories": [
     {
       "name": "Session Management",
       "description": "Start sessions, load context, write handoff notes",
-      "tools": ["rtm_session_start", "rtm_session_end", "rtm_get_context"]
+      "tools": ["rtm_session_start", "rtm_session_end", "rtm_get_context", "rtm_plan"]
     },
     {
       "name": "Task Tracking",

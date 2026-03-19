@@ -796,6 +796,136 @@ server.registerTool(
 );
 
 /**
+ * Get planning context for AI-powered prioritization.
+ */
+server.registerTool(
+  "rtm_plan",
+  {
+    title: "Plan Work Session",
+    description:
+      "Gather all relevant tasks for AI-powered prioritization: overdue, due today/this week, P1s, active, blocked. Returns structured data for Claude to analyze and recommend what to work on next.",
+    inputSchema: {
+      project: z.string().describe("Project name"),
+      availableTime: z
+        .string()
+        .optional()
+        .describe("How much time you have, e.g. '2 hours', '30 minutes'. Helps prioritize by estimate."),
+      energy: z
+        .enum(["deep", "shallow", "any"])
+        .optional()
+        .describe("Your energy level: 'deep' for focused work, 'shallow' for lighter tasks, 'any' for all."),
+    },
+  },
+  async ({ project, availableTime, energy }) => {
+    const ctx = await pm.getPlanningContext(project);
+
+    // Format task for display
+    const fmt = (t: { name: string; priority: string; due: string; estimate: string; tags: string[] }) => {
+      const parts = [`• ${t.name}`];
+      if (t.priority !== "N") parts.push(`!${t.priority}`);
+      if (t.due) parts.push(`due:${t.due.slice(0, 10)}`);
+      if (t.estimate) parts.push(`est:${t.estimate}`);
+      const energyTag = t.tags.find((tag) => tag.startsWith("energy:"));
+      if (energyTag) parts.push(energyTag);
+      return parts.join(" ");
+    };
+
+    // Filter by energy if specified
+    const filterByEnergy = (tasks: typeof ctx.overdue) => {
+      if (!energy || energy === "any") return tasks;
+      return tasks.filter((t) => {
+        const energyTag = t.tags.find((tag) => tag.startsWith("energy:"));
+        if (!energyTag) return true; // Include untagged tasks
+        return energyTag === `energy:${energy}`;
+      });
+    };
+
+    const sections: string[] = [
+      `## ${project} — Planning Context`,
+      "",
+      `**Summary:** ${ctx.summary.totalOpen} open tasks | ${ctx.summary.overdueCount} overdue | ${ctx.summary.p1Count} P1s | ${ctx.summary.blockedCount} blocked | ~${ctx.summary.estimatedHours}h estimated`,
+    ];
+
+    if (availableTime) {
+      sections.push(`**Available time:** ${availableTime}`);
+    }
+    if (energy && energy !== "any") {
+      sections.push(`**Energy filter:** ${energy} focus`);
+    }
+
+    sections.push("");
+
+    // Overdue (always show, highest priority)
+    if (ctx.overdue.length > 0) {
+      sections.push("### 🔴 Overdue");
+      sections.push(...filterByEnergy(ctx.overdue).map(fmt));
+      sections.push("");
+    }
+
+    // Due today
+    if (ctx.dueToday.length > 0) {
+      sections.push("### 📅 Due Today");
+      sections.push(...filterByEnergy(ctx.dueToday).map(fmt));
+      sections.push("");
+    }
+
+    // P1s not already shown
+    const p1sNotShown = ctx.priority1.filter(
+      (t) => !ctx.overdue.includes(t) && !ctx.dueToday.includes(t)
+    );
+    if (p1sNotShown.length > 0) {
+      sections.push("### 🚨 Priority 1");
+      sections.push(...filterByEnergy(p1sNotShown).map(fmt));
+      sections.push("");
+    }
+
+    // Active
+    if (ctx.active.length > 0) {
+      sections.push("### ▶️ In Progress (s:active)");
+      sections.push(...filterByEnergy(ctx.active).map(fmt));
+      sections.push("");
+    }
+
+    // Blocked
+    if (ctx.blocked.length > 0) {
+      sections.push("### 🔒 Blocked");
+      sections.push(...ctx.blocked.map(fmt));
+      sections.push("");
+    }
+
+    // Due this week
+    const dueWeekNotShown = ctx.dueThisWeek.filter(
+      (t) => !ctx.dueToday.includes(t)
+    );
+    if (dueWeekNotShown.length > 0) {
+      sections.push("### 📆 Due This Week");
+      sections.push(...filterByEnergy(dueWeekNotShown).slice(0, 10).map(fmt));
+      if (dueWeekNotShown.length > 10) {
+        sections.push(`  ... and ${dueWeekNotShown.length - 10} more`);
+      }
+      sections.push("");
+    }
+
+    // Backlog preview
+    if (ctx.backlog.length > 0) {
+      sections.push("### 📋 Backlog (top 5)");
+      sections.push(...filterByEnergy(ctx.backlog).slice(0, 5).map(fmt));
+      if (ctx.backlog.length > 5) {
+        sections.push(`  ... and ${ctx.backlog.length - 5} more in backlog`);
+      }
+      sections.push("");
+    }
+
+    sections.push("---");
+    sections.push("**Recommendation prompt:** Based on the above, suggest the top 3 tasks to focus on and explain why.");
+
+    return {
+      content: [{ type: "text", text: sections.join("\n") }],
+    };
+  }
+);
+
+/**
  * Ship a feature — batch complete matching tasks and log changelog.
  */
 server.registerTool(
