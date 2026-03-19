@@ -1,6 +1,6 @@
 {
   "tagline": "Teaching Claude to remember.",
-  "toolCount": 16,
+  "toolCount": 18,
   "toolCategories": [
     {
       "name": "Session Management",
@@ -26,6 +26,11 @@
       "name": "Project Setup",
       "description": "Create and list milk-mcp projects",
       "tools": ["rtm_setup_project", "rtm_list_projects"]
+    },
+    {
+      "name": "Learnings",
+      "description": "Record hard-won lessons that persist as reference",
+      "tools": ["rtm_add_learning", "rtm_get_learnings"]
     }
   ],
   "features": [

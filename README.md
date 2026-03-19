@@ -69,7 +69,7 @@ Or add to a specific project's `.claude/CLAUDE.md` with a hardcoded project name
 
 ## Project Structure in RTM
 
-For each project, milk-mcp creates 5 lists in RTM (prefixed with `CC:` for Claude Code):
+For each project, milk-mcp creates 6 lists in RTM (prefixed with `CC:` for Claude Code):
 
 | List | Purpose |
 |------|---------|
@@ -78,6 +78,7 @@ For each project, milk-mcp creates 5 lists in RTM (prefixed with `CC:` for Claud
 | `CC:ProjectName/Bugs` | Bug reports with reproduction steps |
 | `CC:ProjectName/Decisions` | Architectural decisions with rationale |
 | `CC:ProjectName/Context` | Session handoff notes (single task with rotating notes) |
+| `CC:ProjectName/Learnings` | Hard-won lessons that persist as reference |
 
 ## Available Tools
 
@@ -86,7 +87,7 @@ For each project, milk-mcp creates 5 lists in RTM (prefixed with `CC:` for Claud
 | Tool | Description |
 |------|-------------|
 | `rtm_list_projects` | List all projects set up in RTM |
-| `rtm_setup_project` | Create the 5 standard lists for a new project |
+| `rtm_setup_project` | Create the 6 standard lists for a new project |
 
 ### Session Lifecycle
 
@@ -116,6 +117,14 @@ For each project, milk-mcp creates 5 lists in RTM (prefixed with `CC:` for Claud
 | `rtm_get_backlog` | List backlog items |
 | `rtm_get_bugs` | List open bugs |
 | `rtm_get_decisions` | List all logged decisions |
+| `rtm_get_learnings` | List all recorded learnings |
+
+### Learnings
+
+| Tool | Description |
+|------|-------------|
+| `rtm_add_learning` | Record a hard-won lesson (API quirks, gotchas, patterns) |
+| `rtm_get_learnings` | List all learnings for a project |
 
 ## Usage Example
 
@@ -123,7 +132,7 @@ For each project, milk-mcp creates 5 lists in RTM (prefixed with `CC:` for Claud
 ```
 You: Set up milk-mcp for my ReadyPath project
 Claude: [calls rtm_setup_project with project="ReadyPath"]
-        ✅ Created 5 lists for ReadyPath
+        ✅ Created 6 lists for ReadyPath
 ```
 
 **Starting a session:**

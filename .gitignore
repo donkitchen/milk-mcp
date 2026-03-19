@@ -7,3 +7,6 @@ dist/
 *.env
 .env*
 settings.local.json
+
+# Local planning docs (not committed)
+VISION.md

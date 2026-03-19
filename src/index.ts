@@ -156,14 +156,14 @@ server.registerTool(
 );
 
 /**
- * Bootstrap all 5 lists for a new project.
+ * Bootstrap all 6 lists for a new project.
  */
 server.registerTool(
   "rtm_setup_project",
   {
     title: "Setup RTM Project",
     description:
-      "Creates the 5 standard lists for a new Claude Code project in RTM: TODO, Backlog, Bugs, Decisions, and Context. Safe to run multiple times — skips lists that already exist.",
+      "Creates the 6 standard lists for a new Claude Code project in RTM: TODO, Backlog, Bugs, Decisions, Context, and Learnings. Safe to run multiple times — skips lists that already exist.",
     inputSchema: {
       project: z.string().describe("Project name, e.g. 'ReadyPath' or 'StellaCharters'"),
     },
@@ -584,6 +584,71 @@ server.registerTool(
         {
           type: "text",
           text: `## ${project} — Decisions (${decisions.length})\n\n${decisions.map(formatTask).join("\n\n")}`,
+        },
+      ],
+    };
+  }
+);
+
+/**
+ * Add a learning.
+ */
+server.registerTool(
+  "rtm_add_learning",
+  {
+    title: "Add Learning",
+    description:
+      "Record a hard-won lesson in the project's Learnings list. Learnings persist as permanent reference — they are never completed. Use this for API quirks, gotchas, patterns that work, or anything Claude should remember.",
+    inputSchema: {
+      project: z.string().describe("Project name"),
+      learning: z
+        .string()
+        .describe("The lesson learned, e.g. 'RTM Smart Add date parsing is locale-sensitive — always use ISO format'"),
+      context: z
+        .string()
+        .optional()
+        .describe("Additional context: when this applies, how it was discovered, related code"),
+    },
+  },
+  async ({ project, learning, context }) => {
+    const task = await pm.addLearning(project, learning, context);
+    return {
+      content: [
+        {
+          type: "text",
+          text: `📚 Learning recorded in ${project}/Learnings:\n"${task.name}"${context ? "\n\nContext saved as note." : ""}`,
+        },
+      ],
+    };
+  }
+);
+
+/**
+ * Get learnings for a project.
+ */
+server.registerTool(
+  "rtm_get_learnings",
+  {
+    title: "Get Project Learnings",
+    description: "List all learnings recorded for a project. These are persistent reference items — lessons learned that should inform future work.",
+    inputSchema: {
+      project: z.string().describe("Project name"),
+    },
+  },
+  async ({ project }) => {
+    const learnings = await pm.getLearnings(project);
+    if (learnings.length === 0) {
+      return {
+        content: [
+          { type: "text", text: `No learnings recorded for ${project} yet.` },
+        ],
+      };
+    }
+    return {
+      content: [
+        {
+          type: "text",
+          text: `## ${project} — Learnings (${learnings.length})\n\n${learnings.map(formatTask).join("\n\n")}`,
         },
       ],
     };

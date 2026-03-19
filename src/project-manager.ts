@@ -6,16 +6,17 @@
  * with "CC: <ProjectName> - <ListType>".
  *
  * List types:
- *   TODO     — active tasks for this project
- *   Backlog  — deferred / future work
- *   Bugs     — known issues with repro steps in notes
+ *   TODO      — active tasks for this project
+ *   Backlog   — deferred / future work
+ *   Bugs      — known issues with repro steps in notes
  *   Decisions — architectural decisions with rationale in notes
- *   Context  — single task whose latest note = session handoff
+ *   Context   — single task whose latest note = session handoff
+ *   Learnings — hard-won lessons that persist as reference (never completed)
  */
 
 import { RtmClient, RtmList, RtmTask, RtmNote } from "./rtm-client.js";
 
-export const LIST_TYPES = ["TODO", "Backlog", "Bugs", "Decisions", "Context"] as const;
+export const LIST_TYPES = ["TODO", "Backlog", "Bugs", "Decisions", "Context", "Learnings"] as const;
 export type ListType = (typeof LIST_TYPES)[number];
 
 export interface ProjectLists {
@@ -25,6 +26,7 @@ export interface ProjectLists {
   Bugs?: RtmList;
   Decisions?: RtmList;
   Context?: RtmList;
+  Learnings?: RtmList;
 }
 
 export function listName(project: string, type: ListType): string {
@@ -41,7 +43,7 @@ export class ProjectManager {
     const lists = await this.client.getLists();
     const projects = new Set<string>();
     for (const list of lists) {
-      const match = list.name.match(/^CC:\s+(.+?)\s+-\s+(?:TODO|Backlog|Bugs|Decisions|Context)$/);
+      const match = list.name.match(/^CC:\s+(.+?)\s+-\s+(?:TODO|Backlog|Bugs|Decisions|Context|Learnings)$/);
       if (match) projects.add(match[1]);
     }
     return Array.from(projects).sort();
@@ -184,6 +186,41 @@ export class ProjectManager {
     const lists = await this.getProjectLists(project);
     if (!lists.Decisions) return [];
     return this.client.getTasks(lists.Decisions.id);
+  }
+
+  /**
+   * Get Learnings for a project.
+   */
+  async getLearnings(project: string): Promise<RtmTask[]> {
+    const lists = await this.getProjectLists(project);
+    if (!lists.Learnings) return [];
+    return this.client.getTasks(lists.Learnings.id);
+  }
+
+  /**
+   * Add a learning to the Learnings list.
+   * Learnings are persistent reference items — they should never be completed.
+   */
+  async addLearning(
+    project: string,
+    learning: string,
+    context?: string
+  ): Promise<RtmTask> {
+    const lists = await this.getProjectLists(project);
+    if (!lists.Learnings) {
+      throw new Error(`No Learnings list found for "${project}". Run rtm_setup_project first.`);
+    }
+    const task = await this.client.addTask(lists.Learnings.id, learning);
+    if (context) {
+      await this.client.addNote(
+        task.listId,
+        task.taskseriesId,
+        task.id,
+        "Context",
+        context
+      );
+    }
+    return task;
   }
 
   /**
