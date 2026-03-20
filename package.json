@@ -1,6 +1,6 @@
 {
   "name": "milk-mcp",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "description": "Remember The Milk MCP server for Claude Code — project-scoped task management and session memory",
   "type": "module",
   "main": "dist/index.js",
